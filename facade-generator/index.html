@@ -260,6 +260,7 @@ const SCHEMA = [
     { k: 'horColor', l: 'Horizontal colour', type: 'color' },
     { k: 'backColor', l: 'Backing colour', type: 'color' }
   ]],
+  ['Archicad', [], archicadExtras],
   ['Export', [], exportExtras]
 ];
 
@@ -987,6 +988,53 @@ function exportData() {
     fins: model.fins.map(f => ({ x: r3(f.x), y0: r3(f.y0), y1: r3(f.y1), width: r3(f.w), depth: r3(f.d) })),
     horizontals: model.hors.map(h => ({ x0: r3(h.x0), x1: r3(h.x1), y: r3(h.y), thickness: r3(h.h), depth: r3(h.d), z: r3(h.z) }))
   };
+}
+// The bridge is serve.py. On localhost the page is served by it; elsewhere it is expected on port 8000.
+const BRIDGE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && location.protocol.startsWith('http') ? '' : 'http://127.0.0.1:8000';
+function archicadExtras(body) {
+  const state = el('div', { class: 'status', id: 'acState', role: 'status' }, 'Checking for Archicad…');
+  const numF = (id, lab) => el('label', { for: id }, lab, el('span', { class: 'num' }, el('input', { type: 'number', id, step: 0.5, value: 0, inputmode: 'decimal' }), el('span', { class: 'u' }, 'm')));
+  const keep = el('input', { type: 'checkbox', id: 'acKeep' });
+  const btn = el('button', { class: 'btn primary', type: 'button', id: 'acBuild' }, 'Build in Archicad');
+  const check = el('button', { class: 'btn', type: 'button' }, 'Check connection');
+  const result = el('div', { class: 'status', id: 'acResult' });
+  body.append(
+    el('p', { class: 'note' }, 'Fins become Columns and horizontals become Beams on the Ground Floor. The facade runs along X from the origin and faces −Y.'),
+    el('div', { class: 'pt-grid' }, numF('acX', 'Origin x'), numF('acY', 'Origin y'), el('span')),
+    el('label', { class: 'check', for: 'acKeep' }, keep, el('span', {}, 'Keep the previous build')),
+    el('div', { class: 'btns' }, btn, check), state, result);
+
+  const setState = (ok, msg) => { state.textContent = msg; btn.disabled = !ok; };
+  async function ping() {
+    try {
+      const r = await fetch(BRIDGE + '/api/status', { cache: 'no-store' });
+      const d = await r.json();
+      if (d.ok) setState(true, `Connected to Archicad · Tapir ${d.tapir}`);
+      else setState(false, d.error || 'Archicad is not reachable.');
+    } catch (e) {
+      setState(false, 'Bridge not running. Start it with "python serve.py" in the facade-generator folder, then open http://localhost:8000.');
+    }
+  }
+  check.addEventListener('click', ping);
+  btn.addEventListener('click', async () => {
+    const data = exportData();
+    const ox = parseFloat($('#acX').value) || 0, oy = parseFloat($('#acY').value) || 0;
+    btn.disabled = true; result.textContent = `Building ${data.fins.length} fins and ${data.horizontals.length} horizontals…`;
+    try {
+      const r = await fetch(BRIDGE + '/api/build', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fins: data.fins, horizontals: data.horizontals, origin: [ox, oy], keep: keep.checked, settings: { params: P, curves: C } })
+      });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+      result.textContent = `Built ${d.fins} columns and ${d.horizontals} beams` +
+        (d.removed ? `, replaced ${d.removed} old elements` : '') + (d.failed ? `. ${d.failed} failed.` : '.');
+    } catch (e) {
+      result.textContent = `Build failed: ${e.message}`;
+    } finally { btn.disabled = false; }
+  });
+  btn.disabled = true;
+  ping();
 }
 function exportExtras(body) {
   const status = el('div', { class: 'status', id: 'exStatus', role: 'status' });

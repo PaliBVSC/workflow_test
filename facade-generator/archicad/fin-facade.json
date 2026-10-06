@@ -1,27 +1,81 @@
 {
- "generator": "Fin Facade Generator",
- "version": 1,
- "units": "m",
  "params": {
-  "length": 34.5, "height": 9.7,
-  "vSpacing": 0.84, "vWidth": 0.09, "vDepth": 0.18, "rhythm": "1", "vJitter": 0, "fitEnds": false,
-  "depthMode": "random", "vDepthVar": 0, "depthPeriod": 1,
-  "hStep": 0.16, "hHeight": 0.07, "hDepth": 0.25, "hInset": 0, "rowRef": "cut",
-  "densBottom": 7, "densTop": 26, "falloff": 1.75, "bayVar": 25, "seed": 1878,
-  "interp": "smooth", "cutMode": "remove",
-  "showBacking": true, "showGround": true, "canopyDepth": 0.9,
-  "finColor": "#dddbd4", "horColor": "#b9b4a8", "backColor": "#3a3f3e"
+  "length": 12.5,
+  "height": 9,
+  "vSpacing": 0.42,
+  "vWidth": 0.05,
+  "vDepth": 0.32,
+  "rhythm": "1",
+  "vJitter": 0,
+  "fitEnds": true,
+  "depthMode": "random",
+  "vDepthVar": 45,
+  "depthPeriod": 6,
+  "hStep": 0.24,
+  "hHeight": 0.05,
+  "hDepth": 0.12,
+  "hInset": 0,
+  "rowRef": "ground",
+  "densBottom": 92,
+  "densTop": 4,
+  "falloff": 1.4,
+  "bayVar": 30,
+  "seed": 7,
+  "interp": "smooth",
+  "cutMode": "trim",
+  "showBacking": true,
+  "showGround": true,
+  "canopyDepth": 3,
+  "finColor": "#dddbd4",
+  "horColor": "#b9b4a8",
+  "backColor": "#3a3f3e"
  },
  "curves": {
-  "bottom": { "on": true, "pts": [
-   [0, 2.3797597751086124],
-   [7.056695629951444, 3.1730130334781497],
-   [13.561372348581651, 4.04559161768464],
-   [22.247495527728088, 4.759519550217225],
-   [29.624750830564786, 4.204242269358549],
-   [34.5, 3.45]
-  ] },
-  "top": { "on": false, "pts": [[0, 9.6], [5.031250000000007, 9], [34.5, 9]] }
- },
- "summary": { "fins": 42, "horizontals": 207, "horizontalLength": 154.796, "claddingArea": 200.329 }
+  "bottom": {
+   "on": true,
+   "pts": [
+    [
+     0,
+     3.9
+    ],
+    [
+     2.0833333333333335,
+     4.15
+    ],
+    [
+     4.947916666666666,
+     4.75
+    ],
+    [
+     7.8125,
+     4.35
+    ],
+    [
+     10.15625,
+     3.7
+    ],
+    [
+     12.5,
+     3.45
+    ]
+   ]
+  },
+  "top": {
+   "on": false,
+   "pts": [
+    [
+     0,
+     9.6
+    ],
+    [
+     1.8229166666666667,
+     9
+    ],
+    [
+     12.5,
+     9
+    ]
+   ]
+  }
+ }
 }

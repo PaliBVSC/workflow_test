@@ -61,26 +61,22 @@ def set_layer(ids, index):
             {'elementId': e, 'details': {'layerIndex': index}} for e in ids[i:i + BATCH]]})
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument('--settings')
-    ap.add_argument('--origin', nargs=2, type=float, default=[0.0, 0.0])
-    ap.add_argument('--keep', action='store_true')
-    args = ap.parse_args()
-
-    cmd = ['node', os.path.join(HERE, 'export_model.js')] + ([args.settings] if args.settings else []) + [MODEL]
-    subprocess.run(cmd, check=True)
-    with open(MODEL, encoding='utf8') as f:
-        model = json.load(f)
-    ox, oy = args.origin
-
-    if not args.keep and os.path.exists(LAST_BUILD):
+def build(model, origin=(0.0, 0.0), keep=False, log=print):
+    """Create the fins and horizontals of `model` in Archicad. Returns a summary dict."""
+    ox, oy = origin
+    removed = 0
+    if not keep and os.path.exists(LAST_BUILD):
         with open(LAST_BUILD, encoding='utf8') as f:
             old = json.load(f)
         if old:
-            print(f'Removing {len(old)} elements from the previous build')
+            log(f'Removing {len(old)} elements from the previous build')
             for i in range(0, len(old), 1000):
-                tapir('DeleteElements', {'elements': [{'elementId': e} for e in old[i:i + 1000]]})
+                try:
+                    tapir('DeleteElements', {'elements': [{'elementId': e} for e in old[i:i + 1000]]})
+                except RuntimeError as e:
+                    log(f'  some old elements could not be removed (already deleted?): {e}')
+            removed = len(old)
+        os.remove(LAST_BUILD)
 
     fins_layer = layer_index('Facade - Fins')
     hors_layer = layer_index('Facade - Horizontals')
@@ -101,18 +97,33 @@ def main():
     for i in range(0, len(fins), BATCH):
         ids, e = created_ids(tapir('CreateColumns', {'columnsData': fins[i:i + BATCH]}), 'Fin')
         fin_ids += ids; errs += e
-    print(f'Fins: {len(fin_ids)} columns')
+    log(f'Fins: {len(fin_ids)} columns')
     for i in range(0, len(hors), BATCH):
         ids, e = created_ids(tapir('CreateBeams', {'beamsData': hors[i:i + BATCH]}), 'Horizontal')
         hor_ids += ids; errs += e
-        print(f'  horizontals {len(hor_ids)}/{len(hors)}', end='\r')
-    print(f'Horizontals: {len(hor_ids)} beams      ')
+    log(f'Horizontals: {len(hor_ids)} beams')
 
     with open(LAST_BUILD, 'w', encoding='utf8') as f:
         json.dump(fin_ids + hor_ids, f)
     set_layer(fin_ids, fins_layer)
     set_layer(hor_ids, hors_layer)
-    print(f'Done. {errs} elements failed.' if errs else 'Done.')
+    return {'fins': len(fin_ids), 'horizontals': len(hor_ids), 'failed': errs, 'removed': removed}
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--settings')
+    ap.add_argument('--origin', nargs=2, type=float, default=[0.0, 0.0])
+    ap.add_argument('--keep', action='store_true')
+    args = ap.parse_args()
+
+    cmd = ['node', os.path.join(HERE, 'export_model.js')] + ([args.settings] if args.settings else []) + [MODEL]
+    subprocess.run(cmd, check=True)
+    with open(MODEL, encoding='utf8') as f:
+        model = json.load(f)
+    ox, oy = args.origin
+    r = build(model, (ox, oy), args.keep)
+    print(f'Done. {r["failed"]} elements failed.' if r['failed'] else 'Done.')
 
 
 if __name__ == '__main__':

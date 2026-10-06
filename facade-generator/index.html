@@ -1,0 +1,1070 @@
+<title>Fin Facade Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: drawing-board app. Parameter rail on the left, 3D model sheet above the front-elevation sheet on the right; stacks on phones. */
+:root {
+  --bg: #e6e9e6;
+  --panel: #f5f6f4;
+  --field: #ffffff;
+  --ink: #1b211f;
+  --muted: #5d6763;
+  --line: #d0d6d2;
+  --accent: #c4661a;
+  --accent-soft: rgba(196, 102, 26, .14);
+  --cut-top: #2a699a;
+  --view: #edf0ed;
+  --grid: #dde2de;
+  --grid-major: #c6cdc8;
+  --glass: #8fb4c7;
+  --back2d: #9aa39f;
+  --ground: #d4d8d2;
+  --f-ui: 'Barlow', 'Segoe UI', system-ui, sans-serif;
+  --f-label: 'Barlow Semi Condensed', 'Arial Narrow', 'Segoe UI', sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121615; --panel: #1a1f1d; --field: #222826; --ink: #e2e7e4; --muted: #8d9792;
+    --line: #2d3431; --accent: #ec9447; --accent-soft: rgba(236, 148, 71, .16); --cut-top: #6eaad8;
+    --view: #161b19; --grid: #1f2523; --grid-major: #2c3431; --glass: #4f7487; --back2d: #4c5552;
+    --ground: #2a302d; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121615; --panel: #1a1f1d; --field: #222826; --ink: #e2e7e4; --muted: #8d9792;
+  --line: #2d3431; --accent: #ec9447; --accent-soft: rgba(236, 148, 71, .16); --cut-top: #6eaad8;
+  --view: #161b19; --grid: #1f2523; --grid-major: #2c3431; --glass: #4f7487; --back2d: #4c5552;
+  --ground: #2a302d; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.45 var(--f-ui); overflow: hidden; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 16px; height: 100%; padding: 16px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow-y: auto; min-height: 0; }
+.brand { padding: 18px 18px 14px; border-bottom: 1px solid var(--line); }
+.brand h1 { margin: 0; font: 600 20px/1.15 var(--f-ui); letter-spacing: -.01em; text-wrap: balance; }
+.brand p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+.sect { border-bottom: 1px solid var(--line); }
+.sect > summary { list-style: none; cursor: pointer; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center;
+  font: 600 12px/1 var(--f-label); text-transform: uppercase; letter-spacing: .09em; color: var(--muted); }
+.sect > summary::-webkit-details-marker { display: none; }
+.sect > summary::after { content: '+'; font: 500 14px/1 var(--f-mono); }
+.sect[open] > summary::after { content: '−'; }
+.sect > summary:hover { color: var(--ink); }
+.sect-body { display: grid; gap: 12px; padding: 2px 18px 18px; }
+
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; }
+.row > label { font: 500 14px/1.2 var(--f-label); }
+.row input[type=range] { grid-column: 1 / -1; width: 100%; margin: 2px 0 0; accent-color: var(--accent); }
+.row .hint { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+.num { display: inline-flex; align-items: center; background: var(--field); border: 1px solid var(--line); border-radius: 4px; }
+.num input { width: 66px; border: 0; background: transparent; padding: 3px 2px 3px 7px; font: 400 12.5px/1.2 var(--f-mono);
+  font-variant-numeric: tabular-nums; text-align: right; -moz-appearance: textfield; }
+.num input::-webkit-inner-spin-button { opacity: .4; }
+.num .u { padding: 0 7px 0 3px; color: var(--muted); font: 400 11px/1 var(--f-mono); min-width: 14px; }
+.row select, .row input[type=text] { background: var(--field); border: 1px solid var(--line); border-radius: 4px; padding: 4px 7px; min-width: 0; }
+.row input[type=text] { width: 120px; font: 400 12.5px/1.2 var(--f-mono); }
+.row input[type=color] { width: 44px; height: 26px; border: 1px solid var(--line); border-radius: 4px; background: var(--field); padding: 2px; }
+.check { display: flex; gap: 8px; align-items: center; font: 500 14px/1.2 var(--f-label); cursor: pointer; }
+.check input { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
+
+.btn { background: var(--field); border: 1px solid var(--line); border-radius: 5px; padding: 5px 11px; cursor: pointer; font: 500 13px/1.2 var(--f-label); white-space: nowrap; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.status { font: 400 12px/1.4 var(--f-mono); color: var(--muted); min-height: 1.4em; }
+.note { color: var(--muted); font-size: 12.5px; margin: 0; }
+textarea.dump { width: 100%; height: 120px; font: 400 11px/1.35 var(--f-mono); background: var(--field); border: 1px solid var(--line); border-radius: 4px; color: var(--ink); }
+
+.pt-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; }
+.pt-grid label { display: grid; gap: 3px; font: 500 12px/1 var(--f-label); color: var(--muted); }
+.pt-grid .num input { width: 100%; }
+.pt-grid .num { width: 100%; }
+
+.dens { width: 100%; height: 92px; display: block; border: 1px solid var(--line); border-radius: 4px; background: var(--field); }
+
+.stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; gap: 10px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--field); }
+.seg button { border: 0; background: transparent; padding: 5px 12px; cursor: pointer; font: 500 13px/1.2 var(--f-label); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.stats { display: flex; flex-wrap: wrap; gap: 4px 16px; font: 400 12px/1.3 var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats b { color: var(--ink); font-weight: 500; }
+
+.views { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 3fr) minmax(0, 2fr); gap: 10px; }
+.views[data-view="3d"] { grid-template-rows: minmax(0, 1fr); }
+.views[data-view="front"] { grid-template-rows: minmax(0, 1fr); }
+.views[data-view="3d"] .view-2d, .views[data-view="front"] .view-3d { display: none; }
+.view { position: relative; min-height: 0; overflow: hidden; background: var(--view); border: 1px solid var(--line); border-radius: 8px; }
+.view canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#c2d { touch-action: none; cursor: crosshair; }
+.overlay { position: absolute; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; pointer-events: none; }
+.overlay > * { pointer-events: auto; }
+.ov-tl { top: 10px; left: 10px; right: 10px; }
+.ov-bl { bottom: 8px; left: 10px; right: 10px; justify-content: space-between; }
+.tag { font: 600 11px/1 var(--f-label); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; }
+.hint2d { font: 400 12px/1.35 var(--f-ui); color: var(--muted); background: color-mix(in srgb, var(--panel) 88%, transparent); padding: 3px 8px; border-radius: 4px; max-width: 100%; }
+.readout { font: 400 11.5px/1 var(--f-mono); color: var(--muted); background: var(--panel); border: 1px solid var(--line); padding: 5px 7px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.spacer { flex: 1; }
+.loadmsg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+
+@media (max-width: 820px) {
+  body { overflow: auto; }
+  .app { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .stage { height: 82vh; order: -1; }
+  .panel { overflow: visible; }
+  .hint2d { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="app">
+  <aside class="panel" aria-label="Parameters">
+    <header class="brand">
+      <h1>Fin Facade Generator</h1>
+      <p>Vertical fins, graded horizontal elements and curved cut lines. Units in metres.</p>
+    </header>
+    <div id="controls"></div>
+  </aside>
+
+  <main class="stage">
+    <div class="toolbar">
+      <div class="seg" id="viewSeg" role="group" aria-label="View">
+        <button type="button" data-v="split">Split</button>
+        <button type="button" data-v="3d">3D</button>
+        <button type="button" data-v="front">Front · cuts</button>
+      </div>
+      <div class="stats" id="stats"></div>
+    </div>
+    <div class="views" id="views" data-view="split">
+      <section class="view view-3d" id="view3d" aria-label="3D view">
+        <div class="loadmsg" id="loadmsg">Loading 3D engine…</div>
+        <div class="overlay ov-tl">
+          <span class="tag">3D model</span>
+          <span class="spacer"></span>
+          <button class="btn" type="button" id="btnFront3d">Front</button>
+          <button class="btn" type="button" id="btnReset3d">Perspective</button>
+        </div>
+      </section>
+      <section class="view view-2d" id="view2d" aria-label="Front elevation, cut curve editor">
+        <canvas id="c2d"></canvas>
+        <div class="overlay ov-tl">
+          <span class="tag">Front elevation</span>
+          <div class="seg" id="curveSeg" role="group" aria-label="Curve to edit">
+            <button type="button" data-c="bottom">Bottom cut</button>
+            <button type="button" data-c="top">Top cut</button>
+          </div>
+          <div class="seg" id="modeSeg" role="group" aria-label="Tool">
+            <button type="button" data-m="edit">Edit points</button>
+            <button type="button" data-m="draw">Draw curve</button>
+          </div>
+          <button class="btn" type="button" id="btnUndo" title="Ctrl+Z">Undo</button>
+          <button class="btn" type="button" id="btnFit">Fit</button>
+        </div>
+        <div class="overlay ov-bl">
+          <span class="hint2d" id="hint2d"></span>
+          <span class="readout" id="readout">x — · y —</span>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function () {
+'use strict';
+
+/* ---------- parameters ---------- */
+const LS_KEY = 'finFacade.v1';
+const DEFAULTS = {
+  length: 48, height: 9,
+  vSpacing: 0.42, vWidth: 0.05, vDepth: 0.32, rhythm: '1', vJitter: 0, fitEnds: true,
+  depthMode: 'random', vDepthVar: 45, depthPeriod: 6,
+  hStep: 0.24, hHeight: 0.05, hDepth: 0.12, hInset: 0, rowRef: 'ground',
+  densBottom: 92, densTop: 4, falloff: 1.4, bayVar: 30, seed: 7,
+  interp: 'smooth', cutMode: 'trim',
+  showBacking: true, showGround: true, canopyDepth: 3,
+  finColor: '#dddbd4', horColor: '#b9b4a8', backColor: '#3a3f3e'
+};
+const DEFAULT_CURVES = {
+  bottom: { on: true, pts: [[0, 3.9], [8, 4.15], [19, 4.75], [30, 4.35], [39, 3.7], [48, 3.45]] },
+  top: { on: false, pts: [[0, 9.6], [7, 9], [48, 9]] }
+};
+const clone = o => JSON.parse(JSON.stringify(o));
+let P = Object.assign({}, DEFAULTS);
+let C = clone(DEFAULT_CURVES);
+try {
+  const s = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+  if (s && s.params) { Object.assign(P, s.params); if (s.curves && s.curves.bottom && s.curves.top) C = s.curves; }
+} catch (e) { /* storage unavailable */ }
+
+const ui = { view: innerWidth < 820 ? '3d' : 'split', curve: 'bottom', mode: 'edit', sel: -1 };
+
+const SCHEMA = [
+  ['Facade', [
+    { k: 'length', l: 'Length', min: 6, max: 120, step: 0.5, u: 'm', refit: true },
+    { k: 'height', l: 'Height', min: 3, max: 30, step: 0.1, u: 'm', refit: true }
+  ]],
+  ['Vertical fins', [
+    { k: 'vSpacing', l: 'Spacing (axis to axis)', min: 0.1, max: 2, step: 0.01, u: 'm' },
+    { k: 'vWidth', l: 'Thickness', min: 0.01, max: 0.3, step: 0.005, u: 'm' },
+    { k: 'vDepth', l: 'Depth', min: 0.02, max: 1.2, step: 0.01, u: 'm' },
+    { k: 'rhythm', l: 'Spacing rhythm', type: 'text', hint: 'Repeating multipliers of the spacing, e.g. "1 1 2" or "1 0.5".' },
+    { k: 'vJitter', l: 'Spacing jitter', min: 0, max: 80, step: 1, u: '%' },
+    { k: 'fitEnds', l: 'Stretch spacing to land on both ends', type: 'check' },
+    { k: 'depthMode', l: 'Depth pattern', type: 'select', opts: [['constant', 'Constant'], ['random', 'Random'], ['wave', 'Wave'], ['saw', 'Sawtooth']] },
+    { k: 'vDepthVar', l: 'Depth variation', min: 0, max: 95, step: 1, u: '%' },
+    { k: 'depthPeriod', l: 'Wave / saw period', min: 1, max: 30, step: 0.5, u: 'm' }
+  ]],
+  ['Horizontal elements', [
+    { k: 'hStep', l: 'Row module', min: 0.05, max: 1.5, step: 0.01, u: 'm' },
+    { k: 'hHeight', l: 'Thickness', min: 0.01, max: 0.3, step: 0.005, u: 'm' },
+    { k: 'hDepth', l: 'Depth', min: 0.01, max: 1, step: 0.01, u: 'm' },
+    { k: 'hInset', l: 'Setback from fin face', min: 0, max: 0.6, step: 0.01, u: 'm' },
+    { k: 'rowRef', l: 'Rows follow', type: 'select', opts: [['ground', 'Level grid'], ['cut', 'Bottom cut']] }
+  ]],
+  ['Reduction bottom → top', [
+    { k: 'densBottom', l: 'Density at bottom edge', min: 0, max: 100, step: 1, u: '%' },
+    { k: 'densTop', l: 'Density at top edge', min: 0, max: 100, step: 1, u: '%' },
+    { k: 'falloff', l: 'Falloff exponent', min: 0.2, max: 5, step: 0.05, u: '' },
+    { k: 'bayVar', l: 'Per-bay variation', min: 0, max: 100, step: 1, u: '%' },
+    { k: 'seed', l: 'Random seed', min: 1, max: 9999, step: 1, u: '' }
+  ], densityExtras],
+  ['Cut curves', [
+    { k: 'interp', l: 'Curve type', type: 'select', opts: [['smooth', 'Smooth'], ['linear', 'Polyline']] },
+    { k: 'cutMode', l: 'Horizontals at the cut', type: 'select', opts: [['trim', 'Trim to curve'], ['remove', 'Remove if crossed']] }
+  ], curveExtras],
+  ['Context & materials', [
+    { k: 'showBacking', l: 'Backing wall behind fins', type: 'check' },
+    { k: 'showGround', l: 'Glazed ground floor and canopy', type: 'check' },
+    { k: 'canopyDepth', l: 'Canopy projection', min: 0, max: 8, step: 0.1, u: 'm' },
+    { k: 'finColor', l: 'Fin colour', type: 'color' },
+    { k: 'horColor', l: 'Horizontal colour', type: 'color' },
+    { k: 'backColor', l: 'Backing colour', type: 'color' }
+  ]],
+  ['Export', [], exportExtras]
+];
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const fmt = (v, d = 2) => Number(v).toFixed(d);
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, '');
+    else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const k of kids) e.append(k);
+  return e;
+}
+// deterministic per-cell random in [0,1)
+function rnd(a, b, c) {
+  let h = Math.imul(a | 0, 0x27d4eb2d) ^ Math.imul((b | 0) + 0x9e3779b9, 0x85ebca6b) ^ Math.imul((c | 0) + 0x632be5ab, 0xc2b2ae35);
+  h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); h ^= h >>> 12; h = Math.imul(h, 0x297a2d39); h ^= h >>> 15;
+  return (h >>> 0) / 4294967296;
+}
+function parseRhythm(s) {
+  const m = String(s || '').split(/[\s,;]+/).map(parseFloat).filter(v => isFinite(v) && v > 0).map(v => clamp(v, 0.1, 10));
+  return m.length ? m : [1];
+}
+
+/* ---------- cut curves: y as a function of x ---------- */
+function curveFn(pts, interp) {
+  const p = pts.slice().sort((a, b) => a[0] - b[0]);
+  const xs = [], ys = [];
+  for (const [x, y] of p) {
+    if (xs.length && x - xs[xs.length - 1] < 1e-4) { ys[ys.length - 1] = y; continue; }
+    xs.push(x); ys.push(y);
+  }
+  const n = xs.length;
+  if (n === 0) return () => 0;
+  if (n === 1) return () => ys[0];
+  const seg = x => { let lo = 0, hi = n - 1; while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (xs[mid] <= x) lo = mid; else hi = mid; } return lo; };
+  if (interp === 'linear') {
+    return x => {
+      if (x <= xs[0]) return ys[0];
+      if (x >= xs[n - 1]) return ys[n - 1];
+      const i = seg(x), t = (x - xs[i]) / (xs[i + 1] - xs[i]);
+      return ys[i] + t * (ys[i + 1] - ys[i]);
+    };
+  }
+  // monotone cubic (Fritsch–Carlson): smooth, never overshoots the control points
+  const d = [], m = new Array(n);
+  for (let i = 0; i < n - 1; i++) d[i] = (ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]);
+  m[0] = d[0]; m[n - 1] = d[n - 2];
+  for (let i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+    const a = m[i] / d[i], b = m[i + 1] / d[i], s = a * a + b * b;
+    if (s > 9) { const t = 3 / Math.sqrt(s); m[i] = t * a * d[i]; m[i + 1] = t * b * d[i]; }
+  }
+  return x => {
+    if (x <= xs[0]) return ys[0];
+    if (x >= xs[n - 1]) return ys[n - 1];
+    const i = seg(x), h = xs[i + 1] - xs[i], t = (x - xs[i]) / h, t2 = t * t, t3 = t2 * t;
+    return (2 * t3 - 3 * t2 + 1) * ys[i] + (t3 - 2 * t2 + t) * h * m[i] + (-2 * t3 + 3 * t2) * ys[i + 1] + (t3 - t2) * h * m[i + 1];
+  };
+}
+
+/* ---------- generator ---------- */
+let model = null;
+function generate() {
+  const L = P.length, H = P.height, S = P.seed | 0, w = P.vWidth;
+  const bot = C.bottom.on && C.bottom.pts.length ? curveFn(C.bottom.pts, P.interp) : null;
+  const top = C.top.on && C.top.pts.length ? curveFn(C.top.pts, P.interp) : null;
+  const yb = x => bot ? clamp(bot(x), 0, H) : 0;
+  const yt = x => top ? clamp(top(x), 0, H) : H;
+
+  // fin axes along the length
+  const m = parseRhythm(P.rhythm);
+  let xs = [0], x = 0, i = 0, over = null;
+  const minGap = Math.max(w * 1.2, 0.02);
+  while (xs.length < 4000) {
+    const g = Math.max(minGap, P.vSpacing * m[i % m.length] * (1 + (P.vJitter / 100) * (rnd(i, 11, S) * 2 - 1)));
+    i++;
+    if (x + g > L + 1e-9) { over = x + g; break; }
+    x += g; xs.push(x);
+  }
+  if (P.fitEnds && over !== null) {
+    const last = xs[xs.length - 1];
+    if (xs.length === 1 || over - L < L - last) xs.push(over);
+    const sc = L / xs[xs.length - 1];
+    xs = xs.map(v => v * sc);
+  }
+  const fx = xs.map(v => w / 2 + v * (L - w) / L);
+
+  const depths = fx.map((xc, j) => {
+    const v = P.vDepthVar / 100;
+    let f = 0;
+    if (P.depthMode === 'random') f = rnd(j, 23, S);
+    else if (P.depthMode === 'wave') f = 0.5 + 0.5 * Math.sin(2 * Math.PI * xc / P.depthPeriod);
+    else if (P.depthMode === 'saw') f = (xc / P.depthPeriod) % 1;
+    return Math.max(0.005, P.vDepth * (1 - v * f));
+  });
+
+  const fins = [];
+  fx.forEach((xc, j) => {
+    const y0 = yb(xc), y1 = yt(xc);
+    if (y1 - y0 > 0.02) fins.push({ x: xc, y0, y1, w, d: depths[j] });
+  });
+
+  // horizontals between fins, thinned by height
+  const hors = [];
+  const hh = P.hHeight, hd = P.hDepth, step = P.hStep;
+  const dB = P.densBottom / 100, dT = P.densTop / 100, bv = P.bayVar / 100;
+  const trim = P.cutMode === 'trim';
+  const minLen = Math.max(0.03, hh);
+  const clipLine = (r, xa, fa, xb, fb, lim) => { // keep the part where the line f(x) <= lim
+    if (!r) return null;
+    if (fa <= lim && fb <= lim) return r;
+    if (fa > lim && fb > lim) return null;
+    const xi = xa + (lim - fa) / (fb - fa) * (xb - xa);
+    return fa <= lim ? [r[0], Math.min(r[1], xi)] : [Math.max(r[0], xi), r[1]];
+  };
+  outer:
+  for (let b = 0; b < fx.length - 1; b++) {
+    const xa = fx[b] + w / 2, xb = fx[b + 1] - w / 2;
+    if (xb - xa < 0.02) continue;
+    const ba = yb(xa), bb = yb(xb), ta = yt(xa), tb = yt(xb);
+    const xm = (xa + xb) / 2, bandB = yb(xm), bandT = yt(xm);
+    if (bandT - bandB < hh) continue;
+    const bias = (rnd(b, 31, S) * 2 - 1) * bv * 0.5;
+    const zf = Math.min(depths[b], depths[b + 1]) - P.hInset;
+    const zc = Math.max(hd / 2, zf - hd / 2);
+    const base = P.rowRef === 'cut' ? bandB : 0;
+    const kMin = Math.max(0, Math.floor((Math.min(ba, bb) - base) / step) - 1);
+    const kMax = Math.ceil((Math.max(ta, tb) - base) / step) + 1;
+    for (let k = kMin; k <= kMax; k++) {
+      const y = base + (k + 0.5) * step;
+      if (y < 0 || y > H) continue;
+      const lo = y - hh / 2, hi = y + hh / 2;
+      const t = clamp((y - bandB) / (bandT - bandB), 0, 1);
+      const p = dB + (dT - dB) * Math.pow(t, P.falloff) + bias;
+      if (rnd(b, k + 1000, S) >= p) continue;
+      let r = [xa, xb];
+      r = clipLine(r, xa, ba, xb, bb, lo);            // above bottom cut
+      r = clipLine(r, xa, -ta, xb, -tb, -hi);         // below top cut
+      if (!r) continue;
+      if (!trim && (r[0] > xa + 1e-6 || r[1] < xb - 1e-6)) continue;
+      if (r[1] - r[0] < minLen) continue;
+      hors.push({ x0: r[0], x1: r[1], y, h: hh, d: hd, z: zc });
+      if (hors.length >= 80000) break outer;
+    }
+  }
+
+  let area = 0, hl = 0;
+  const N = 400;
+  for (let j = 0; j < N; j++) { const xx = (j + 0.5) / N * L; area += Math.max(0, yt(xx) - yb(xx)) * L / N; }
+  for (const h of hors) hl += h.x1 - h.x0;
+  return { fins, hors, yb, yt, bot, top, area, hl };
+}
+
+/* ---------- theme tokens ---------- */
+let tok = {};
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k of ['view', 'ink', 'muted', 'line', 'panel', 'accent', 'accent-soft', 'cut-top', 'grid', 'grid-major', 'glass', 'back2d', 'ground'])
+    tok[k] = cs.getPropertyValue('--' + k).trim();
+}
+readTokens();
+
+/* ---------- 3D ---------- */
+const T3 = { ok: false };
+function init3d() {
+  if (!window.THREE || !THREE.OrbitControls) { $('#loadmsg').textContent = 'The 3D engine could not load. The front elevation still works.'; return; }
+  $('#loadmsg').remove();
+  const host = $('#view3d');
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  host.prepend(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 2000);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.maxPolarAngle = Math.PI * 0.495;
+  controls.addEventListener('change', () => render3d());
+
+  scene.add(new THREE.HemisphereLight(0xf4f6ff, 0x8a8478, 0.65));
+  const sun = new THREE.DirectionalLight(0xfff3e2, 0.95);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = 0.02;
+  scene.add(sun, sun.target);
+
+  const lin = hex => new THREE.Color(hex).convertSRGBToLinear();
+  const mats = {
+    fin: new THREE.MeshStandardMaterial({ roughness: 0.5, metalness: 0.2 }),
+    hor: new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.2 }),
+    back: new THREE.MeshStandardMaterial({ roughness: 0.9, side: THREE.DoubleSide }),
+    mass: new THREE.MeshStandardMaterial({ roughness: 0.95 }),
+    canopy: new THREE.MeshStandardMaterial({ color: lin('#efede7'), roughness: 0.8, side: THREE.DoubleSide }),
+    glass: new THREE.MeshStandardMaterial({ color: lin('#7e9fae'), roughness: 0.08, metalness: 0.1, transparent: true, opacity: 0.55,
+      emissive: lin('#ffc27a'), emissiveIntensity: 0.22, side: THREE.DoubleSide }),
+    mull: new THREE.MeshStandardMaterial({ color: lin('#2b2f2e'), roughness: 0.6 }),
+    ground: new THREE.MeshStandardMaterial({ roughness: 1 })
+  };
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), mats.ground);
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
+  scene.add(ground);
+
+  const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+  const inst = {};
+  const ctxGroup = new THREE.Group(); scene.add(ctxGroup);
+  Object.assign(T3, { ok: true, renderer, scene, camera, controls, sun, mats, ground, boxGeo, inst, ctxGroup, lin, host });
+
+  new ResizeObserver(() => resize3d()).observe(host);
+  applyTheme3d();
+  resize3d();
+  resetCamera();
+}
+function resize3d() {
+  if (!T3.ok) return;
+  const r = T3.host.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return;
+  T3.renderer.setSize(r.width, r.height, false);
+  T3.camera.aspect = r.width / r.height;
+  T3.camera.updateProjectionMatrix();
+  render3d();
+}
+function applyTheme3d() {
+  if (!T3.ok) return;
+  T3.scene.background = new THREE.Color(tok.view).convertSRGBToLinear();
+  T3.mats.ground.color = new THREE.Color(tok.ground).convertSRGBToLinear();
+  render3d();
+}
+function resetCamera() {
+  if (!T3.ok) return;
+  const L = P.length, H = P.height;
+  T3.controls.target.set(0, H * 0.45, 0);
+  T3.camera.position.set(-L * 0.42, H * 0.35 + 1.7, L * 0.95 + 6);
+  T3.controls.update(); render3d();
+}
+function frontCamera() {
+  if (!T3.ok) return;
+  const L = P.length, H = P.height, cam = T3.camera;
+  const half = Math.tan(cam.fov * Math.PI / 360);
+  const dist = Math.max(H / 2 / half, L / 2 / (half * cam.aspect)) * 1.12;
+  T3.controls.target.set(0, H / 2, 0);
+  cam.position.set(0, H / 2, dist);
+  T3.controls.update(); render3d();
+}
+let r3pending = false;
+function render3d() {
+  if (!T3.ok || r3pending) return;
+  r3pending = true;
+  requestAnimationFrame(() => { r3pending = false; T3.renderer.render(T3.scene, T3.camera); });
+}
+function ensureInst(name, mat, n) {
+  let m = T3.inst[name];
+  if (!m || m.userData.cap < n) {
+    if (m) { T3.scene.remove(m); if (m.dispose) m.dispose(); }
+    const cap = Math.max(16, Math.ceil(n * 1.5));
+    m = new THREE.InstancedMesh(T3.boxGeo, mat, cap);
+    m.userData.cap = cap;
+    m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false;
+    T3.scene.add(m); T3.inst[name] = m;
+  }
+  m.count = n;
+  return m;
+}
+function ribbon(A, B, mat) {
+  const n = A.length, pos = new Float32Array(n * 6), idx = [];
+  for (let i = 0; i < n; i++) { pos.set(A[i], i * 6); pos.set(B[i], i * 6 + 3); }
+  for (let i = 0; i < n - 1; i++) { const a = 2 * i, b = a + 1, c = a + 2, d = a + 3; idx.push(a, c, b, b, c, d); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  const mesh = new THREE.Mesh(g, mat);
+  mesh.receiveShadow = true; mesh.castShadow = true;
+  return mesh;
+}
+function build3d() {
+  if (!T3.ok || !model) return;
+  const { mats, lin } = T3, L = P.length, H = P.height, ox = -L / 2;
+  mats.fin.color = lin(P.finColor); mats.hor.color = lin(P.horColor);
+  mats.back.color = lin(P.backColor); mats.mass.color = lin(P.backColor).multiplyScalar(0.75);
+  const M = new THREE.Matrix4();
+
+  const fm = ensureInst('fins', mats.fin, model.fins.length);
+  model.fins.forEach((f, i) => { M.makeScale(f.w, f.y1 - f.y0, f.d); M.setPosition(f.x + ox, (f.y0 + f.y1) / 2, f.d / 2); fm.setMatrixAt(i, M); });
+  fm.instanceMatrix.needsUpdate = true;
+
+  const hm = ensureInst('hors', mats.hor, model.hors.length);
+  model.hors.forEach((h, i) => { M.makeScale(h.x1 - h.x0, h.h, h.d); M.setPosition((h.x0 + h.x1) / 2 + ox, h.y, h.z); hm.setMatrixAt(i, M); });
+  hm.instanceMatrix.needsUpdate = true;
+
+  // context: backing, building mass, glazing, canopy
+  const g = T3.ctxGroup;
+  for (const c of g.children.slice()) { g.remove(c); if (c.geometry && c.geometry !== T3.boxGeo) c.geometry.dispose(); }
+  const N = clamp(Math.ceil(L * 3), 32, 600), X = [];
+  for (let j = 0; j <= N; j++) X.push(j / N * L);
+  if (P.showBacking) g.add(ribbon(X.map(x => [x + ox, model.yb(x), -0.005]), X.map(x => [x + ox, model.yt(x), -0.005]), mats.back));
+  const massD = Math.max(12, Math.min(30, L * 0.4)), zb = -0.95;
+  const mass = new THREE.Mesh(T3.boxGeo, mats.mass);
+  mass.scale.set(L, H, massD); mass.position.set(0, H / 2, zb - 0.02 - massD / 2);
+  mass.castShadow = mass.receiveShadow = true; g.add(mass);
+
+  if (P.showGround && model.bot) {
+    const th = 0.35, zf = Math.max(0, P.canopyDepth);
+    const b = X.map(x => model.yb(x)), bl = b.map(v => Math.max(0, v - th));
+    g.add(ribbon(X.map((x, j) => [x + ox, b[j], zb]), X.map((x, j) => [x + ox, b[j], zf]), mats.canopy));
+    g.add(ribbon(X.map((x, j) => [x + ox, b[j], zf]), X.map((x, j) => [x + ox, bl[j], zf]), mats.canopy));
+    g.add(ribbon(X.map((x, j) => [x + ox, bl[j], zf]), X.map((x, j) => [x + ox, bl[j], zb]), mats.canopy));
+    g.add(ribbon(X.map(x => [x + ox, 0, zb + 0.01]), X.map((x, j) => [x + ox, bl[j], zb + 0.01]), mats.glass));
+    const pitch = 1.8, nm = Math.floor(L / pitch) + 1;
+    for (let j = 0; j < nm; j++) {
+      const x = Math.min(L - 0.03, j * pitch + 0.03), hgt = Math.max(0.01, model.yb(x) - th);
+      const mm = new THREE.Mesh(T3.boxGeo, mats.mull);
+      mm.scale.set(0.06, hgt, 0.12); mm.position.set(x + ox, hgt / 2, zb + 0.06); g.add(mm);
+    }
+  }
+
+  const s = T3.sun, sh = s.shadow.camera, ext = Math.max(L, H) * 0.75 + 4;
+  s.position.set(-L * 0.35, H * 2.2 + 10, L * 0.6 + 12);
+  s.target.position.set(0, H / 2, 0);
+  sh.left = -ext; sh.right = ext; sh.top = ext; sh.bottom = -ext; sh.near = 1; sh.far = L * 3 + 80;
+  sh.updateProjectionMatrix();
+  render3d();
+}
+
+/* ---------- 2D front elevation ---------- */
+const cv = $('#c2d'), ctx = cv.getContext('2d');
+const V = { s: 10, ox: 0, oy: 0, w: 0, h: 0, dpr: 1, fitted: false, userZoomed: false };
+const sx = X => V.ox + X * V.s, sy = Y => V.oy - Y * V.s;
+const wx = px => (px - V.ox) / V.s, wy = py => (V.oy - py) / V.s;
+function resize2d() {
+  const r = $('#view2d').getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return;
+  V.w = r.width; V.h = r.height; V.dpr = Math.min(devicePixelRatio || 1, 2);
+  cv.width = Math.round(V.w * V.dpr); cv.height = Math.round(V.h * V.dpr);
+  if (!V.userZoomed) fit2d();
+  draw2d();
+}
+function fit2d() {
+  const padL = 58, padR = 26, padT = V.w < 640 ? 96 : 62, padB = 58;
+  const s = Math.min((V.w - padL - padR) / P.length, (V.h - padT - padB) / P.height);
+  V.s = Math.max(s, 0.3);
+  V.ox = padL + ((V.w - padL - padR) - P.length * V.s) / 2;
+  V.oy = V.h - padB - ((V.h - padT - padB) - P.height * V.s) / 2;
+  V.fitted = true;
+}
+const crisp = v => Math.round(v) + 0.5;
+function draw2d() {
+  if (!V.w || !model) return;
+  const c = ctx, L = P.length, H = P.height, s = V.s;
+  c.setTransform(V.dpr, 0, 0, V.dpr, 0, 0);
+  c.globalAlpha = 1;
+  c.fillStyle = tok.view; c.fillRect(0, 0, V.w, V.h);
+
+  // 1 m grid, heavier every 5 m
+  const g = s < 3 ? 10 : s < 9 ? 5 : 1;
+  c.lineWidth = 1;
+  const xa = Math.floor(wx(0) / g) * g, xb = wx(V.w), ya = Math.floor(wy(V.h) / g) * g, yb_ = wy(0);
+  for (let X = xa; X <= xb; X += g) { c.strokeStyle = X % 5 === 0 ? tok['grid-major'] : tok.grid; c.beginPath(); c.moveTo(crisp(sx(X)), 0); c.lineTo(crisp(sx(X)), V.h); c.stroke(); }
+  for (let Y = ya; Y <= yb_; Y += g) { c.strokeStyle = Y % 5 === 0 ? tok['grid-major'] : tok.grid; c.beginPath(); c.moveTo(0, crisp(sy(Y))); c.lineTo(V.w, crisp(sy(Y))); c.stroke(); }
+
+  const xL = Math.max(0, wx(0)), xR = Math.min(L, wx(V.w)), dx = 2 / s;
+  const band = (fa, fb, color, alpha) => {
+    c.globalAlpha = alpha; c.fillStyle = color; c.beginPath();
+    c.moveTo(sx(xL), sy(fa(xL)));
+    for (let X = xL; X <= xR; X += dx) c.lineTo(sx(X), sy(fa(X)));
+    c.lineTo(sx(xR), sy(fa(xR)));
+    for (let X = xR; X >= xL; X -= dx) c.lineTo(sx(X), sy(fb(X)));
+    c.lineTo(sx(xL), sy(fb(xL)));
+    c.closePath(); c.fill(); c.globalAlpha = 1;
+  };
+  if (xR > xL) {
+    if (P.showGround && model.bot) band(() => 0, model.yb, tok.glass, 0.35);
+    if (P.showBacking) band(model.yb, model.yt, tok.back2d, 0.22);
+  }
+
+  // fins, shaded by depth
+  c.fillStyle = tok.ink;
+  const fw = Math.max(1, P.vWidth * s);
+  for (const f of model.fins) {
+    const px = sx(f.x);
+    if (px < -4 || px > V.w + 4) continue;
+    c.globalAlpha = 0.16 + 0.5 * (f.d / P.vDepth);
+    c.fillRect(px - fw / 2, sy(f.y1), fw, (f.y1 - f.y0) * s);
+  }
+  // horizontals
+  c.globalAlpha = 0.9;
+  const hpx = Math.max(1, P.hHeight * s);
+  for (const h of model.hors) {
+    const a = sx(h.x0), b = sx(h.x1);
+    if (b < 0 || a > V.w) continue;
+    c.fillRect(a, sy(h.y) - hpx / 2, Math.max(1, b - a), hpx);
+  }
+  c.globalAlpha = 1;
+
+  // facade envelope + ground line
+  c.strokeStyle = tok.muted; c.setLineDash([4, 4]);
+  c.strokeRect(crisp(sx(0)), crisp(sy(H)), Math.round(L * s), Math.round(H * s));
+  c.setLineDash([]);
+  c.strokeStyle = tok.ink; c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(0, sy(0)); c.lineTo(V.w, sy(0)); c.stroke();
+
+  drawCurve('top', tok['cut-top']);
+  drawCurve('bottom', tok.accent);
+  drawDims();
+}
+function drawCurve(key, color) {
+  const cur = C[key], active = ui.curve === key;
+  if (!cur.on && !active) return;
+  const c = ctx, L = P.length, fn = curveFn(cur.pts, P.interp);
+  const xL = Math.max(0, wx(0)), xR = Math.min(L, wx(V.w));
+  c.strokeStyle = color; c.lineWidth = active ? 2.25 : 1.5;
+  c.globalAlpha = cur.on ? 1 : 0.55;
+  c.setLineDash(cur.on ? [] : [6, 5]);
+  c.beginPath();
+  for (let X = xL; X <= xR + 1e-9; X += 2 / V.s) { const y = sy(fn(X)); X === xL ? c.moveTo(sx(X), y) : c.lineTo(sx(X), y); }
+  c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+  if (!active) return;
+  cur.pts.forEach((p, i) => {
+    const sel = i === ui.sel, hov = i === hoverPt;
+    c.beginPath(); c.arc(sx(p[0]), sy(p[1]), sel ? 6.5 : hov ? 6 : 5, 0, Math.PI * 2);
+    c.fillStyle = sel ? color : tok.panel; c.fill();
+    c.lineWidth = 2; c.strokeStyle = color; c.stroke();
+  });
+  if (ui.sel >= 0 && cur.pts[ui.sel]) {
+    const p = cur.pts[ui.sel];
+    label(`${fmt(p[0])} / ${fmt(p[1])}`, sx(p[0]) + 10, sy(p[1]) - 10, color);
+  }
+}
+function label(t, x, y, color) {
+  const c = ctx;
+  c.font = '500 11px "JetBrains Mono", ui-monospace, monospace';
+  const w = c.measureText(t).width + 10;
+  x = clamp(x, 4, V.w - w - 4);
+  c.fillStyle = tok.panel; c.globalAlpha = 0.92; c.fillRect(x, y - 15, w, 19); c.globalAlpha = 1;
+  c.fillStyle = color; c.fillText(t, x + 5, y - 1);
+}
+function drawDims() {
+  const c = ctx, L = P.length, H = P.height;
+  c.strokeStyle = tok.muted; c.fillStyle = tok.muted; c.lineWidth = 1;
+  c.font = '400 11px "JetBrains Mono", ui-monospace, monospace';
+  const tick = (x, y) => { c.beginPath(); c.moveTo(x - 4, y + 4); c.lineTo(x + 4, y - 4); c.stroke(); };
+  // length along the bottom
+  const y = crisp(sy(0) + 30), a = sx(0), b = sx(L);
+  c.beginPath(); c.moveTo(a - 6, y); c.lineTo(b + 6, y); c.moveTo(crisp(a), sy(0) + 6); c.lineTo(crisp(a), y + 6); c.moveTo(crisp(b), sy(0) + 6); c.lineTo(crisp(b), y + 6); c.stroke();
+  tick(a, y); tick(b, y);
+  c.textAlign = 'center'; c.fillText(fmt(L) + ' m', clamp((a + b) / 2, 40, V.w - 40), y - 6);
+  // height on the left
+  const x = crisp(sx(0) - 30), t = sy(H), d = sy(0);
+  c.beginPath(); c.moveTo(x, t - 6); c.lineTo(x, d + 6); c.moveTo(sx(0) - 6, crisp(t)); c.lineTo(x - 6, crisp(t)); c.stroke();
+  tick(x, t); tick(x, d);
+  c.save(); c.translate(x - 6, clamp((t + d) / 2, 40, V.h - 40)); c.rotate(-Math.PI / 2); c.fillText(fmt(H) + ' m', 0, 0); c.restore();
+  c.textAlign = 'start';
+}
+
+/* ---------- 2D interaction ---------- */
+let drag = null, hoverPt = -1;
+const undoStack = [];
+function pushUndo() { undoStack.push(JSON.stringify(C)); if (undoStack.length > 60) undoStack.shift(); $('#btnUndo').disabled = false; }
+function undo() {
+  if (!undoStack.length) return;
+  C = JSON.parse(undoStack.pop()); ui.sel = -1;
+  $('#btnUndo').disabled = !undoStack.length;
+  syncCurveChecks(); updatePointFields(); invalidate();
+}
+function localPt(e) { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+function hitPoint(px, py) {
+  const pts = C[ui.curve].pts; let best = -1, bd = 10;
+  pts.forEach((p, i) => { const d = Math.hypot(sx(p[0]) - px, sy(p[1]) - py); if (d < bd) { bd = d; best = i; } });
+  return best;
+}
+function nearCurve(px, py) {
+  const cur = C[ui.curve], X = wx(px);
+  if (X < 0 || X > P.length) return false;
+  return Math.abs(sy(curveFn(cur.pts, P.interp)(X)) - py) < 8;
+}
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('pointerdown', e => {
+  cv.setPointerCapture(e.pointerId);
+  const [px, py] = localPt(e);
+  if (e.button === 1 || e.button === 2) { drag = { type: 'pan', px, py, ox: V.ox, oy: V.oy }; return; }
+  const cur = C[ui.curve];
+  if (ui.mode === 'draw') { drag = { type: 'draw', pts: [[px, py]] }; return; }
+  const hit = hitPoint(px, py);
+  if (hit >= 0) {
+    pushUndo(); ui.sel = hit; cur.on = true; syncCurveChecks();
+    drag = { type: 'pt', i: hit }; updatePointFields(); invalidate(); return;
+  }
+  if (nearCurve(px, py)) {
+    pushUndo();
+    const X = clamp(wx(px), 0, P.length), Y = curveFn(cur.pts, P.interp)(X);
+    let i = cur.pts.findIndex(p => p[0] > X); if (i < 0) i = cur.pts.length;
+    cur.pts.splice(i, 0, [X, Y]); cur.on = true; syncCurveChecks();
+    ui.sel = i; drag = { type: 'pt', i }; updatePointFields(); invalidate(); return;
+  }
+  ui.sel = -1; updatePointFields();
+  drag = { type: 'pan', px, py, ox: V.ox, oy: V.oy };
+  draw2d();
+});
+cv.addEventListener('pointermove', e => {
+  const [px, py] = localPt(e);
+  $('#readout').textContent = `x ${fmt(wx(px))} · y ${fmt(wy(py))} m`;
+  if (!drag) {
+    if (ui.mode === 'draw') { cv.style.cursor = 'crosshair'; return; }
+    const h = hitPoint(px, py);
+    if (h !== hoverPt) { hoverPt = h; draw2d(); }
+    cv.style.cursor = h >= 0 ? 'grab' : nearCurve(px, py) ? 'copy' : 'move';
+    return;
+  }
+  if (drag.type === 'pan') {
+    V.ox = drag.ox + px - drag.px; V.oy = drag.oy + py - drag.py; V.userZoomed = true; draw2d();
+  } else if (drag.type === 'pt') {
+    const pts = C[ui.curve].pts, i = drag.i;
+    const lo = i > 0 ? pts[i - 1][0] + 0.05 : 0, hi = i < pts.length - 1 ? pts[i + 1][0] - 0.05 : P.length;
+    let X = clamp(wx(px), lo, Math.max(lo, hi)), Y = clamp(wy(py), 0, P.height);
+    if (e.shiftKey) { X = Math.round(X * 10) / 10; Y = Math.round(Y * 10) / 10; }
+    pts[i] = [X, Y]; updatePointFields(); invalidate();
+  } else if (drag.type === 'draw') {
+    const last = drag.pts[drag.pts.length - 1];
+    if (Math.hypot(px - last[0], py - last[1]) > 3) drag.pts.push([px, py]);
+    draw2d(); drawStroke(drag.pts);
+  }
+});
+function drawStroke(pts) {
+  const c = ctx;
+  c.strokeStyle = ui.curve === 'bottom' ? tok.accent : tok['cut-top'];
+  c.lineWidth = 2; c.setLineDash([3, 3]); c.beginPath();
+  pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]));
+  c.stroke(); c.setLineDash([]);
+}
+function endDrag() {
+  if (drag && drag.type === 'draw') finishStroke(drag.pts);
+  drag = null;
+}
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', () => { drag = null; draw2d(); });
+cv.addEventListener('dblclick', e => {
+  if (ui.mode !== 'edit') return;
+  const [px, py] = localPt(e), h = hitPoint(px, py);
+  if (h >= 0) deletePoint(h);
+});
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const [px, py] = localPt(e), X = wx(px), Y = wy(py);
+  V.s = clamp(V.s * Math.exp(-e.deltaY * 0.0015), 0.3, 800);
+  V.ox = px - X * V.s; V.oy = py + Y * V.s; V.userZoomed = true;
+  draw2d();
+}, { passive: false });
+
+function rdp(pts, eps) {
+  if (pts.length < 3) return pts;
+  const [a, b] = [pts[0], pts[pts.length - 1]];
+  let idx = -1, dmax = 0;
+  const L2 = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1e-9;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const p = pts[i];
+    const d = Math.abs((b[0] - a[0]) * (a[1] - p[1]) - (a[0] - p[0]) * (b[1] - a[1])) / L2;
+    if (d > dmax) { dmax = d; idx = i; }
+  }
+  if (dmax <= eps) return [a, b];
+  return rdp(pts.slice(0, idx + 1), eps).slice(0, -1).concat(rdp(pts.slice(idx), eps));
+}
+function finishStroke(screenPts) {
+  let w = screenPts.map(([px, py]) => [clamp(wx(px), 0, P.length), clamp(wy(py), 0, P.height)]);
+  const span = Math.max(...w.map(p => p[0])) - Math.min(...w.map(p => p[0]));
+  if (w.length < 2 || span < 0.3) { draw2d(); return; }
+  let eps = 4 / V.s, s;
+  do { s = rdp(w, eps); eps *= 1.4; } while (s.length > 30);
+  s.sort((a, b) => a[0] - b[0]);
+  const out = [];
+  for (const p of s) { if (out.length && p[0] - out[out.length - 1][0] < 0.1) continue; out.push([+p[0].toFixed(3), +p[1].toFixed(3)]); }
+  if (out.length < 2) { draw2d(); return; }
+  pushUndo();
+  C[ui.curve].pts = out; C[ui.curve].on = true; ui.sel = -1;
+  syncCurveChecks(); updatePointFields(); invalidate();
+}
+function deletePoint(i) {
+  const pts = C[ui.curve].pts;
+  if (pts.length <= 2 || i < 0 || i >= pts.length) return;
+  pushUndo(); pts.splice(i, 1); ui.sel = -1; updatePointFields(); invalidate();
+}
+addEventListener('keydown', e => {
+  const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement && document.activeElement.tagName);
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !typing) { e.preventDefault(); undo(); return; }
+  if (typing) return;
+  if ((e.key === 'Delete' || e.key === 'Backspace') && ui.sel >= 0) { e.preventDefault(); deletePoint(ui.sel); }
+  if (e.key === 'Escape') { ui.sel = -1; updatePointFields(); draw2d(); }
+});
+
+/* ---------- toolbar segments ---------- */
+function setSeg(sel, attr, val) { document.querySelectorAll(sel + ' button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset[attr] === val))); }
+function setView(v) {
+  ui.view = v; $('#views').dataset.view = v; setSeg('#viewSeg', 'v', v);
+  requestAnimationFrame(() => { resize3d(); resize2d(); });
+}
+function setHint() {
+  const name = ui.curve === 'bottom' ? 'bottom' : 'top';
+  $('#hint2d').textContent = ui.mode === 'draw'
+    ? `Press and drag across the elevation to sketch a new ${name} cut. It replaces the current one.`
+    : `Drag points · click the curve to add a point · double-click to remove · Shift snaps to 0.1 m · drag empty space to pan, scroll to zoom`;
+}
+$('#viewSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); });
+$('#curveSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ui.curve = b.dataset.c; ui.sel = -1; setSeg('#curveSeg', 'c', ui.curve); setHint(); updatePointFields(); draw2d(); });
+$('#modeSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; ui.mode = b.dataset.m; setSeg('#modeSeg', 'm', ui.mode); setHint(); });
+$('#btnFit').addEventListener('click', () => { V.userZoomed = false; fit2d(); draw2d(); });
+$('#btnUndo').addEventListener('click', undo);
+$('#btnUndo').disabled = true;
+$('#btnReset3d').addEventListener('click', resetCamera);
+$('#btnFront3d').addEventListener('click', frontCamera);
+
+/* ---------- panel controls ---------- */
+const setters = {};
+function makeControl(it) {
+  const id = 'p-' + it.k;
+  if (it.type === 'check') {
+    const inp = el('input', { type: 'checkbox', id, onchange: () => { P[it.k] = inp.checked; invalidate(); } });
+    setters[it.k] = () => { inp.checked = !!P[it.k]; };
+    return el('label', { class: 'check', for: id }, inp, el('span', {}, it.l));
+  }
+  if (it.type === 'select') {
+    const sel = el('select', { id, onchange: () => { P[it.k] = sel.value; invalidate(); } }, ...it.opts.map(([v, t]) => el('option', { value: v }, t)));
+    setters[it.k] = () => { sel.value = P[it.k]; };
+    return el('div', { class: 'row' }, el('label', { for: id }, it.l), sel);
+  }
+  if (it.type === 'text') {
+    const inp = el('input', { type: 'text', id, spellcheck: 'false', oninput: () => { P[it.k] = inp.value; invalidate(); } });
+    setters[it.k] = () => { inp.value = P[it.k]; };
+    return el('div', { class: 'row' }, el('label', { for: id }, it.l), inp, el('div', { class: 'hint' }, it.hint || ''));
+  }
+  if (it.type === 'color') {
+    const inp = el('input', { type: 'color', id, oninput: () => { P[it.k] = inp.value; invalidate(); } });
+    setters[it.k] = () => { inp.value = P[it.k]; };
+    return el('div', { class: 'row' }, el('label', { for: id }, it.l), inp);
+  }
+  const dec = it.step < 1 ? (String(it.step).split('.')[1] || '').length : 0;
+  const num = el('input', { type: 'number', id, min: it.min, max: it.max, step: it.step, inputmode: 'decimal' });
+  const rng = el('input', { type: 'range', id: id + '-r', 'aria-label': it.l, min: it.min, max: it.max, step: it.step });
+  const apply = v => {
+    v = parseFloat(v); if (!isFinite(v)) { setters[it.k](); return; }
+    v = clamp(v, it.min, it.max);
+    if (it.k === 'length' && P.length > 0) { const f = v / P.length; for (const k of ['bottom', 'top']) C[k].pts = C[k].pts.map(([x, y]) => [x * f, y]); }
+    P[it.k] = v; num.value = fmt(v, dec); rng.value = v;
+    invalidate({ refit: it.refit });
+  };
+  rng.addEventListener('input', () => apply(rng.value));
+  num.addEventListener('change', () => apply(num.value));
+  setters[it.k] = () => { num.value = fmt(P[it.k], dec); rng.value = P[it.k]; };
+  return el('div', { class: 'row' }, el('label', { for: id }, it.l), el('span', { class: 'num' }, num, el('span', { class: 'u' }, it.u)), rng);
+}
+function syncControls() { for (const k in setters) setters[k](); syncCurveChecks(); }
+
+function densityExtras(body) {
+  body.append(el('canvas', { class: 'dens', id: 'dens', 'aria-label': 'Density profile from bottom to top' }));
+  body.append(el('div', { class: 'btns' }, el('button', { class: 'btn', type: 'button', onclick: () => { P.seed = 1 + Math.floor(Math.random() * 9998); setters.seed(); invalidate(); } }, 'New random pattern')));
+}
+function drawDensity() {
+  const c = $('#dens'); if (!c) return;
+  const r = c.getBoundingClientRect(); if (r.width < 2) return;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr);
+  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const W = r.width, Hh = r.height, pl = 52, pr = 10, pt = 8, pb = 8;
+  g.clearRect(0, 0, W, Hh);
+  g.font = '400 10px "JetBrains Mono", ui-monospace, monospace'; g.fillStyle = tok.muted;
+  g.fillText('top', 8, pt + 9); g.fillText('bottom', 8, Hh - pb - 1);
+  g.strokeStyle = tok.line; g.lineWidth = 1;
+  for (const f of [0, 0.5, 1]) { const x = crisp(pl + f * (W - pl - pr)); g.beginPath(); g.moveTo(x, pt); g.lineTo(x, Hh - pb); g.stroke(); }
+  const dB = P.densBottom / 100, dT = P.densTop / 100, pts = [];
+  for (let i = 0; i <= 40; i++) { const t = i / 40, p = clamp(dB + (dT - dB) * Math.pow(t, P.falloff), 0, 1); pts.push([pl + p * (W - pl - pr), Hh - pb - t * (Hh - pt - pb)]); }
+  g.beginPath(); g.moveTo(pl, Hh - pb); pts.forEach(p => g.lineTo(p[0], p[1])); g.lineTo(pl, pt); g.closePath();
+  g.fillStyle = tok['accent-soft']; g.fill();
+  g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]));
+  g.strokeStyle = tok.accent; g.lineWidth = 2; g.stroke();
+}
+function curveExtras(body) {
+  const mk = (key, text) => {
+    const inp = el('input', { type: 'checkbox', id: 'cut-' + key, onchange: () => { C[key].on = inp.checked; invalidate(); } });
+    return el('label', { class: 'check', for: 'cut-' + key }, inp, el('span', {}, text));
+  };
+  body.prepend(mk('top', 'Top cut active'));
+  body.prepend(mk('bottom', 'Bottom cut active'));
+  const numF = (id, lab) => el('label', { for: id }, lab, el('span', { class: 'num' }, el('input', { type: 'number', id, step: 0.05, inputmode: 'decimal' }), el('span', { class: 'u' }, 'm')));
+  body.append(el('div', { class: 'pt-grid' }, numF('pt-x', 'Point x'), numF('pt-y', 'Point y'),
+    el('button', { class: 'btn', type: 'button', id: 'pt-del', onclick: () => deletePoint(ui.sel) }, 'Delete')));
+  body.append(el('p', { class: 'note', id: 'pt-note' }, ''));
+  body.append(el('div', { class: 'btns' },
+    el('button', { class: 'btn', type: 'button', onclick: () => { pushUndo(); C[ui.curve].pts = clone(DEFAULT_CURVES[ui.curve].pts).map(([x, y]) => [x * P.length / 48, y]); ui.sel = -1; updatePointFields(); invalidate(); } }, 'Reset this curve'),
+    el('button', { class: 'btn', type: 'button', onclick: () => {
+      pushUndo(); const pts = C[ui.curve].pts, avg = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+      C[ui.curve].pts = [[0, avg], [P.length, avg]]; ui.sel = -1; updatePointFields(); invalidate();
+    } }, 'Flatten')));
+  const onPt = () => {
+    const pts = C[ui.curve].pts, i = ui.sel; if (i < 0 || !pts[i]) return;
+    let X = parseFloat($('#pt-x').value), Y = parseFloat($('#pt-y').value);
+    if (!isFinite(X) || !isFinite(Y)) { updatePointFields(); return; }
+    const lo = i > 0 ? pts[i - 1][0] + 0.05 : 0, hi = i < pts.length - 1 ? pts[i + 1][0] - 0.05 : P.length;
+    pushUndo(); pts[i] = [clamp(X, lo, Math.max(lo, hi)), clamp(Y, 0, P.height)];
+    updatePointFields(); invalidate();
+  };
+  setTimeout(() => { $('#pt-x').addEventListener('change', onPt); $('#pt-y').addEventListener('change', onPt); });
+}
+function syncCurveChecks() { const b = $('#cut-bottom'), t = $('#cut-top'); if (b) b.checked = C.bottom.on; if (t) t.checked = C.top.on; }
+function updatePointFields() {
+  const x = $('#pt-x'), y = $('#pt-y'), d = $('#pt-del'), n = $('#pt-note'); if (!x) return;
+  const p = C[ui.curve].pts[ui.sel];
+  x.disabled = y.disabled = d.disabled = !p;
+  x.value = p ? fmt(p[0], 3) : ''; y.value = p ? fmt(p[1], 3) : '';
+  const name = ui.curve === 'bottom' ? 'Bottom cut' : 'Top cut';
+  n.textContent = p ? `${name}, point ${ui.sel + 1} of ${C[ui.curve].pts.length}` : `${name}: ${C[ui.curve].pts.length} points. Select one in the front elevation to type exact values.`;
+}
+
+function exportData() {
+  const r3 = v => Math.round(v * 1000) / 1000;
+  return {
+    generator: 'Fin Facade Generator', version: 1, units: 'm',
+    axes: 'x along facade from left end, y up from ground, z outward from the backing plane',
+    params: P, curves: C,
+    summary: { fins: model.fins.length, horizontals: model.hors.length, horizontalLength: r3(model.hl), claddingArea: r3(model.area) },
+    fins: model.fins.map(f => ({ x: r3(f.x), y0: r3(f.y0), y1: r3(f.y1), width: r3(f.w), depth: r3(f.d) })),
+    horizontals: model.hors.map(h => ({ x0: r3(h.x0), x1: r3(h.x1), y: r3(h.y), thickness: r3(h.h), depth: r3(h.d), z: r3(h.z) }))
+  };
+}
+function exportExtras(body) {
+  const status = el('div', { class: 'status', id: 'exStatus', role: 'status' });
+  const dump = el('textarea', { class: 'dump', id: 'exDump', readonly: true, hidden: true, 'aria-label': 'Exported JSON' });
+  const file = el('input', { type: 'file', id: 'exFile', accept: '.json,application/json', hidden: true });
+  body.append(
+    el('p', { class: 'note' }, 'The element schedule lists every fin and horizontal with its position and size, plus the parameters and cut curves. Import a saved file to restore a design.'),
+    el('div', { class: 'btns' },
+      el('button', { class: 'btn primary', type: 'button', onclick: async () => {
+        const txt = JSON.stringify(exportData(), null, 1);
+        try { await navigator.clipboard.writeText(txt); status.textContent = `Copied ${model.fins.length + model.hors.length} elements as JSON.`; dump.hidden = true; }
+        catch (e) { dump.value = txt; dump.hidden = false; dump.select(); status.textContent = 'Clipboard is blocked here. The JSON is selected below; copy it with Ctrl+C.'; }
+      } }, 'Copy JSON'),
+      el('button', { class: 'btn', type: 'button', onclick: () => {
+        try {
+          const blob = new Blob([JSON.stringify(exportData(), null, 1)], { type: 'application/json' });
+          const a = el('a', { href: URL.createObjectURL(blob), download: 'fin-facade.json' });
+          document.body.append(a); a.click(); a.remove();
+          status.textContent = 'Saved fin-facade.json. If nothing downloaded, use Copy JSON.';
+        } catch (e) { status.textContent = 'Saving files is blocked here. Use Copy JSON.'; }
+      } }, 'Save .json'),
+      el('button', { class: 'btn', type: 'button', onclick: () => file.click() }, 'Import'),
+      el('button', { class: 'btn', type: 'button', onclick: () => {
+        pushUndo(); P = Object.assign({}, DEFAULTS); C = clone(DEFAULT_CURVES); ui.sel = -1;
+        syncControls(); updatePointFields(); V.userZoomed = false; invalidate({ refit: true }); resetCamera(); status.textContent = 'Reset to the default design.';
+      } }, 'Reset all')),
+    status, dump, file);
+  file.addEventListener('change', async () => {
+    const f = file.files[0]; if (!f) return;
+    try {
+      const d = JSON.parse(await f.text());
+      if (!d.params || !d.curves || !d.curves.bottom || !d.curves.top) throw new Error('missing params or curves');
+      pushUndo(); P = Object.assign({}, DEFAULTS, d.params); C = d.curves; ui.sel = -1;
+      syncControls(); updatePointFields(); V.userZoomed = false; invalidate({ refit: true }); resetCamera();
+      status.textContent = `Imported ${f.name}.`;
+    } catch (e) { status.textContent = `Could not import ${f.name}: ${e.message}. Choose a file saved by this tool.`; }
+    file.value = '';
+  });
+}
+function buildControls() {
+  const root = $('#controls');
+  for (const [title, items, extra] of SCHEMA) {
+    const body = el('div', { class: 'sect-body' }, ...items.map(makeControl));
+    if (extra) extra(body);
+    root.append(el('details', { class: 'sect', open: true }, el('summary', {}, title), body));
+  }
+}
+
+/* ---------- update loop ---------- */
+let pending = false, refitPending = false, saveT = 0;
+function invalidate(opts) {
+  if (opts && opts.refit) refitPending = true;
+  if (pending) return;
+  pending = true;
+  requestAnimationFrame(() => {
+    pending = false;
+    model = generate();
+    if (refitPending && !V.userZoomed && V.w) fit2d();
+    refitPending = false;
+    build3d(); draw2d(); drawDensity(); updateStats();
+    clearTimeout(saveT);
+    saveT = setTimeout(() => { try { localStorage.setItem(LS_KEY, JSON.stringify({ params: P, curves: C })); } catch (e) { /* ignore */ } }, 300);
+  });
+}
+function updateStats() {
+  $('#stats').innerHTML = `<span><b>${model.fins.length}</b> fins</span><span><b>${model.hors.length}</b> horizontals</span>` +
+    `<span><b>${fmt(model.hl, 1)}</b> m horizontals</span><span><b>${fmt(model.area, 1)}</b> m² clad</span>`;
+}
+
+/* ---------- theme ---------- */
+function onTheme() { readTokens(); applyTheme3d(); draw2d(); drawDensity(); }
+try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme); } catch (e) { /* old browser */ }
+new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- boot ---------- */
+buildControls();
+syncControls();
+setSeg('#curveSeg', 'c', ui.curve); setSeg('#modeSeg', 'm', ui.mode); setHint();
+updatePointFields();
+model = generate();
+init3d();
+new ResizeObserver(() => resize2d()).observe($('#view2d'));
+new ResizeObserver(() => drawDensity()).observe($('#dens'));
+setView(ui.view);
+build3d();
+invalidate();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { draw2d(); drawDensity(); });
+})();
+</script>

@@ -1,0 +1,4 @@
+# Local Archicad build state
+archicad/facade_model.json
+archicad/last_build.json
+__pycache__/

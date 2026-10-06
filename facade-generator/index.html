@@ -1,3 +1,9 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Parametric model of a vertical-fin facade with graded horizontal elements and editable cut curves, in 3D and front elevation.">
 <title>Fin Facade Generator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -125,6 +131,8 @@ textarea.dump { width: 100%; height: 120px; font: 400 11px/1.35 var(--f-mono); b
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
+</head>
+<body>
 
 <div class="app">
   <aside class="panel" aria-label="Parameters">
@@ -1068,3 +1076,6 @@ invalidate();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { draw2d(); drawDensity(); });
 })();
 </script>
+
+</body>
+</html>
